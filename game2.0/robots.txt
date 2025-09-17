@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# 允许访问所有CSS和JS文件
+Allow: /css/
+Allow: /js/
+Allow: /img/
+Allow: /data/
+
+# 指向站点地图
+Sitemap: https://curiominds.com/sitemap.xml
+
+# 爬取延迟（可选）
+Crawl-delay: 1
