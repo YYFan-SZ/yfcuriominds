@@ -1,0 +1,10 @@
+{
+  "name": "teacher-comment-tool",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "check": "node --check src/main.js && node --check src/templates.js && node --check src/store.js && node --check src/auth.js && node --check src/commentGenerator.js && node --check src/exporter.js && node --check src/utils.js"
+  }
+}

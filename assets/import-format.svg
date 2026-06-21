@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="520" viewBox="0 0 920 520" role="img" aria-label="Excel名单上传格式示意图">
+  <rect width="920" height="520" rx="28" fill="#f6fbf8"/>
+  <rect x="34" y="34" width="852" height="452" rx="20" fill="#ffffff" stroke="#dce9e4"/>
+  <text x="70" y="86" fill="#08634f" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="30" font-weight="700">Excel 名单格式示意</text>
+  <text x="70" y="122" fill="#62716e" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18">可以上传整张 .xlsx，系统会自动寻找“姓名 / 学生姓名”这一列，只导入这一列。</text>
+
+  <rect x="70" y="160" width="780" height="236" rx="12" fill="#ffffff" stroke="#cfe3d7"/>
+  <rect x="70" y="160" width="780" height="52" rx="12" fill="#f2faf6"/>
+  <path d="M70 212H850M70 264H850M70 316H850M70 368H850M226 160V396M382 160V396M538 160V396M694 160V396" stroke="#dce9e4"/>
+
+  <rect x="82" y="172" width="132" height="28" rx="14" fill="#08634f"/>
+  <text x="148" y="192" text-anchor="middle" fill="#ffffff" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="17" font-weight="700">学生姓名</text>
+  <text x="304" y="192" text-anchor="middle" fill="#40514d" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="17" font-weight="700">成绩</text>
+  <text x="460" y="192" text-anchor="middle" fill="#40514d" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="17" font-weight="700">班级</text>
+  <text x="616" y="192" text-anchor="middle" fill="#40514d" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="17" font-weight="700">备注</text>
+  <text x="772" y="192" text-anchor="middle" fill="#40514d" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="17" font-weight="700">其它信息</text>
+
+  <text x="148" y="246" text-anchor="middle" fill="#13221f" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18">王小明</text>
+  <text x="304" y="246" text-anchor="middle" fill="#8a9692" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18">98</text>
+  <text x="460" y="246" text-anchor="middle" fill="#8a9692" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18">三年级1班</text>
+  <text x="616" y="246" text-anchor="middle" fill="#8a9692" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18">课堂积极</text>
+
+  <text x="148" y="298" text-anchor="middle" fill="#13221f" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18">李同学</text>
+  <text x="304" y="298" text-anchor="middle" fill="#8a9692" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18">85</text>
+  <text x="460" y="298" text-anchor="middle" fill="#8a9692" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18">三年级1班</text>
+  <text x="616" y="298" text-anchor="middle" fill="#8a9692" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18">有进步</text>
+
+  <text x="148" y="350" text-anchor="middle" fill="#13221f" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18">陈一一</text>
+  <text x="304" y="350" text-anchor="middle" fill="#8a9692" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18">92</text>
+  <text x="460" y="350" text-anchor="middle" fill="#8a9692" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18">三年级1班</text>
+  <text x="616" y="350" text-anchor="middle" fill="#8a9692" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18">表达能力好</text>
+
+  <path d="M148 405v38" stroke="#19a875" stroke-width="4" stroke-linecap="round"/>
+  <path d="M132 428l16 16 16-16" fill="none" stroke="#19a875" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="238" y="414" width="402" height="46" rx="23" fill="#ecfbf4" stroke="#cfe3d7"/>
+  <text x="439" y="444" text-anchor="middle" fill="#08634f" font-family="Microsoft YaHei, PingFang SC, Arial" font-size="18" font-weight="700">只导入姓名列，其它列会自动忽略</text>
+</svg>
