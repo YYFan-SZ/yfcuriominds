@@ -416,6 +416,19 @@ async function callGenerator(env, students, settings) {
 }
 
 async function handleApi(env, request, path) {
+  if (request.method === "GET" && path === "/api/health") {
+    return jsonResponse(200, {
+      ok: true,
+      env: {
+        DEEPSEEK_API_KEY: Boolean(env.DEEPSEEK_API_KEY),
+        DEEPSEEK_MODEL: Boolean(env.DEEPSEEK_MODEL),
+        SUPABASE_URL: Boolean(env.SUPABASE_URL),
+        SUPABASE_SERVICE_ROLE_KEY: Boolean(env.SUPABASE_SERVICE_ROLE_KEY),
+        SESSION_SECRET: Boolean(env.SESSION_SECRET),
+      },
+    });
+  }
+
   await ensureDefaultInviteCodes(env);
 
   if (request.method === "GET" && path === "/api/session") {
