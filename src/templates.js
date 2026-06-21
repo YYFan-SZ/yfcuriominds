@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, ROUTES, WORKSPACE_STEPS } from "./constants.js";
+﻿import { DEFAULT_SETTINGS, ROUTES, WORKSPACE_STEPS } from "./constants.js";
 import { getGenerationCost } from "./commentGenerator.js";
 import { escapeHtml } from "./utils.js";
 
@@ -24,29 +24,42 @@ function renderEnterPage() {
     <main class="entry-page">
       <section class="entry-card">
         <div class="brand-row">
-          <div class="brand-mark">评</div>
+          <div class="brand-mark"><img class="brand-logo" src="./logo.png" alt="期末评语助手" /></div>
           <div>
             <h1>期末评语助手</h1>
-            <p>用邀请码登录，批量生成学生评语</p>
+            <p>登录后批量生成学生评语</p>
           </div>
         </div>
-        <form id="inviteLoginForm" class="entry-form">
-          <label>
-            邀请码
-            <input id="inviteCodeInput" type="text" placeholder="例如 TEACHER100" autocomplete="one-time-code" />
-          </label>
-          <label>
-            昵称
-            <input id="nicknameInput" type="text" placeholder="首次使用填写，如 王老师" />
-          </label>
-          <button class="primary-btn" type="submit">进入工作台</button>
-        </form>
-        <p class="hint">演示邀请码：TEACHER100、CLASS300。管理员演示码：ADMIN999。</p>
+        <div class="login-switch" role="tablist" aria-label="登录方式">
+          <button class="login-switch-btn active" data-login-mode="invite" type="button">邀请码登录</button>
+          <button class="login-switch-btn" data-login-mode="password" type="button">账号密码登录</button>
+        </div>
+        <div class="login-choice active" data-login-panel="invite">
+          <form id="inviteLoginForm" class="entry-form">
+            <label>
+              邀请码
+              <input id="inviteCodeInput" type="text" placeholder="请输入邀请码" autocomplete="one-time-code" />
+            </label>
+            <button class="primary-btn" type="submit">邀请码登录</button>
+          </form>
+        </div>
+        <div class="login-choice" data-login-panel="password">
+          <form id="passwordLoginForm" class="entry-form">
+            <label>
+              昵称
+              <input id="loginNicknameInput" type="text" placeholder="请输入昵称" autocomplete="username" />
+            </label>
+            <label>
+              密码
+              <input id="loginPasswordInput" type="password" placeholder="请输入密码" autocomplete="current-password" />
+            </label>
+            <button class="dark-btn" type="submit">账号密码登录</button>
+          </form>
+        </div>
       </section>
     </main>
   `;
 }
-
 function renderTopNav(state, user) {
   const navItems = [
     [ROUTES.WORKSPACE, "工作台"],
@@ -58,7 +71,7 @@ function renderTopNav(state, user) {
   return `
     <header class="app-header">
       <div class="brand-row compact">
-        <div class="brand-mark">评</div>
+        <div class="brand-mark"><img class="brand-logo" src="./logo.png" alt="期末评语助手" /></div>
         <div>
           <h1>期末评语助手</h1>
           <p>${escapeHtml(user.nickname)} · ${user.credits} 积分</p>
@@ -72,7 +85,6 @@ function renderTopNav(state, user) {
     </header>
   `;
 }
-
 function renderWorkspace(state) {
   return `
     <section class="workspace-hero">
@@ -144,7 +156,6 @@ function renderImportStep(state) {
     </section>
   `;
 }
-
 function renderNamePreview(state) {
   return `
     <div id="importedStudentList" class="name-preview editable" data-student-order-list>
@@ -154,7 +165,7 @@ function renderNamePreview(state) {
             <div class="imported-student-row" data-id="${student.id}">
               <strong draggable="true" data-drag-handle title="拖动调整顺序">${index + 1}</strong>
               <input data-import-name value="${escapeHtml(student.name)}" aria-label="学生姓名" />
-              <button class="icon-btn" data-import-delete type="button" title="删除学生">×</button>
+              <button class="icon-btn" data-import-delete type="button" title="删除学生" aria-label="删除学生">×</button>
             </div>
           `,
         )
@@ -197,7 +208,6 @@ function renderTagsStep(state) {
     </section>
   `;
 }
-
 function renderStudentCard(student, index, activeStudentId) {
   const tags = student.tags || [];
   return `
@@ -205,9 +215,9 @@ function renderStudentCard(student, index, activeStudentId) {
       <div class="student-main">
         <span class="student-index" draggable="true" data-drag-handle title="拖动调整顺序">${index + 1}</span>
         <input data-name-input value="${escapeHtml(student.name)}" aria-label="学生姓名" />
-        <button class="icon-btn" type="button" title="删除学生">×</button>
+        <button class="icon-btn" type="button" title="删除学生" aria-label="删除学生">×</button>
       </div>
-      <div class="selected-tags">${tags.length ? tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("") : "<em>未选择标签</em>"}</div>
+      <div class="selected-tags">${tags.length ? tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("") : "<em>鏈€夋嫨鏍囩</em>"}</div>
     </article>
   `;
 }
@@ -217,12 +227,12 @@ function renderActiveTagEditor(student, tagCategories) {
   const tags = student.tags || [];
   return `
     <aside id="tagEditor" class="tag-editor" data-id="${student.id}">
-      <div class="mini-section-title">当前编辑：${escapeHtml(student.name)}</div>
+      <div class="mini-section-title">褰撳墠缂栬緫锛?{escapeHtml(student.name)}</div>
       <div class="quick-tag-grid">
         ${tagCategories.map((category) => renderTagCategory(category, tags)).join("")}
         <label class="quick-tag-input custom-note">
-          补充描述
-          <input data-student-note value="${escapeHtml(student.note || "")}" placeholder="如：最近更愿意举手、作业稳定很多" />
+          琛ュ厖鎻忚堪
+          <input data-student-note value="${escapeHtml(student.note || "")}" placeholder="濡傦細鏈€杩戞洿鎰挎剰涓炬墜銆佷綔涓氱ǔ瀹氬緢澶? />
         </label>
       </div>
     </aside>
@@ -247,8 +257,8 @@ function renderTagLibraryEditor(tagCategories) {
   return `
     <section id="tagLibraryEditor" class="tag-library-editor">
       <div class="tag-library-heading">
-        <div class="mini-section-title">标签库编辑</div>
-        <button id="resetTagLibraryBtn" class="text-btn" type="button">恢复默认</button>
+        <div class="mini-section-title">鏍囩搴撶紪杈?/div>
+        <button id="resetTagLibraryBtn" class="text-btn" type="button">鎭㈠榛樿</button>
       </div>
       <div class="tag-library-list">
         ${tagCategories
@@ -265,7 +275,7 @@ function renderTagLibraryEditor(tagCategories) {
                       (tag, tagIndex) => `
                         <label class="tag-edit-chip">
                           <input data-tag-edit value="${escapeHtml(tag)}" data-tag-index="${tagIndex}" aria-label="${escapeHtml(category.name)}标签" />
-                          <button class="tag-remove-btn" data-tag-remove data-tag-index="${tagIndex}" type="button" title="删除标签">×</button>
+                          <button class="tag-remove-btn" data-tag-remove data-tag-index="${tagIndex}" type="button" title="删除标签" aria-label="删除标签">×</button>
                         </label>
                       `,
                     )
@@ -273,7 +283,7 @@ function renderTagLibraryEditor(tagCategories) {
                 </div>
                 <div class="tag-add-row">
                   <input data-tag-add-input placeholder="新增${escapeHtml(category.name)}标签" />
-                  <button class="ghost-btn" data-tag-add type="button">添加</button>
+                  <button class="ghost-btn" data-tag-add type="button">娣诲姞</button>
                 </div>
               </div>
             `,
@@ -289,15 +299,15 @@ function renderTagLibraryPage(state) {
     <header class="page-title">
       <div>
         <p class="eyebrow">Tag Library</p>
-        <h2>标签库编辑</h2>
+        <h2>鏍囩搴撶紪杈?/h2>
       </div>
-      <button class="ghost-btn" data-step="${WORKSPACE_STEPS.TAGS}" type="button">返回逐个标签</button>
+      <button class="ghost-btn" data-step="${WORKSPACE_STEPS.TAGS}" type="button">杩斿洖閫愪釜鏍囩</button>
     </header>
     <section class="panel">
       <div class="section-title">
         <div>
-          <h3>自定义标签</h3>
-          <p class="subtle">这里修改的是老师自己的标签库，会同步到“逐个标签”页面；已选中的同名标签也会跟着更新。</p>
+          <h3>鑷畾涔夋爣绛?/h3>
+          <p class="subtle">杩欓噷淇敼鐨勬槸鑰佸笀鑷繁鐨勬爣绛惧簱锛屼細鍚屾鍒扳€滈€愪釜鏍囩鈥濋〉闈紱宸查€変腑鐨勫悓鍚嶆爣绛句篃浼氳窡鐫€鏇存柊銆?/p>
         </div>
       </div>
       ${renderTagLibraryEditor(state.tagCategories || [])}
@@ -346,7 +356,6 @@ function renderSettingsStep(state) {
     </section>
   `;
 }
-
 function getSelectedGenerationIds(state) {
   const validIds = new Set(state.students.map((student) => student.id));
   if (!Array.isArray(state.selectedGenerationStudentIds)) return validIds;
@@ -362,7 +371,6 @@ function renderGenerationStatus(status) {
     </div>
   `;
 }
-
 function renderSelect(id, label, options, value) {
   return `
     <label>
@@ -407,7 +415,6 @@ function renderResultsStep(state) {
     </section>
   `;
 }
-
 function renderHistory(state) {
   const records = state.commentHistory || [];
   const status = state.commentHistoryStatus;
@@ -460,7 +467,6 @@ function renderHistoryCard(record) {
     </article>
   `;
 }
-
 function renderResultCard(student, comment) {
   const tags = (student.tags || []).join("、") || "未选标签";
   return `
@@ -476,45 +482,24 @@ function renderResultCard(student, comment) {
           <button class="small-btn" data-action="regenerate" type="button">重新生成</button>
         </div>
       </div>
+      <textarea data-comment>${escapeHtml(comment)}</textarea>
       <div class="rewrite-box" hidden>
         <input data-rewrite-input placeholder="局部改写要求，如：更温柔一点、加入课堂积极、删掉提醒语气" />
-        <button class="small-btn primary-small-btn" data-action="confirm-rewrite" type="button">确认改写</button>
+        <button class="primary-btn" data-action="submit-rewrite" type="button">提交改写</button>
       </div>
-      <textarea aria-label="${escapeHtml(student.name)}的评语">${escapeHtml(comment)}</textarea>
     </article>
   `;
 }
-
-function renderStudentOrderPanel(students, id) {
-  return `
-    <section id="${id}" class="student-order-panel">
-      <div class="mini-section-title">学生顺序</div>
-      <div class="student-order-list" data-student-order-list>
-        ${students
-          .map(
-            (student, index) => `
-              <div class="student-order-row" data-id="${student.id}">
-                <strong draggable="true" data-drag-handle title="拖动调整顺序">${index + 1}</strong>
-                <span>${escapeHtml(student.name)}</span>
-              </div>
-            `,
-          )
-          .join("")}
-      </div>
-    </section>
-  `;
-}
-
 function renderGenerationStudentPanel(students, selectedIds) {
   const selectedCount = students.filter((student) => selectedIds.has(student.id)).length;
   const isAllSelected = selectedCount === students.length && students.length > 0;
   return `
     <section id="settingsStudentOrder" class="student-order-panel generation-student-panel">
       <div class="selection-toolbar generation-select-toolbar">
-        <label><input id="selectAllGenerateStudents" type="checkbox" ${isAllSelected ? "checked" : ""} /> 全选生成对象</label>
-        <span id="selectedGenerateCount">${selectedCount} / ${students.length} 已选</span>
+        <label><input id="selectAllGenerateStudents" type="checkbox" ${isAllSelected ? "checked" : ""} /> 鍏ㄩ€夌敓鎴愬璞?/label>
+        <span id="selectedGenerateCount">${selectedCount} / ${students.length} 宸查€?/span>
       </div>
-      <div class="mini-section-title">生成对象与顺序</div>
+      <div class="mini-section-title">鐢熸垚瀵硅薄涓庨『搴?/div>
       <div class="student-order-list" data-student-order-list>
         ${students
           .map(
@@ -544,7 +529,29 @@ function renderAccount(state, user) {
         <div class="account-meta">
           <p><strong>昵称</strong>${escapeHtml(user.nickname)}</p>
           <p><strong>邀请码</strong>${escapeHtml(user.inviteCode)}</p>
+          <p><strong>账号密码</strong>${user.hasPassword ? "已设置" : "未设置"}</p>
         </div>
+        <details class="account-security">
+          <summary>${user.hasPassword ? "修改账号密码" : "设置账号密码"}</summary>
+          <form id="accountCredentialsForm" class="account-credentials-form">
+            <label>
+              昵称
+              <input id="accountNicknameInput" type="text" value="${escapeHtml(user.nickname)}" autocomplete="username" />
+            </label>
+            <label>
+              新密码
+              <input id="accountPasswordInput" type="password" placeholder="${user.hasPassword ? "留空则只修改昵称" : "至少 6 位"}" autocomplete="new-password" />
+            </label>
+            <label>
+              确认新密码
+              <input id="accountPasswordConfirmInput" type="password" placeholder="再次输入新密码" autocomplete="new-password" />
+            </label>
+            <div class="account-security-actions">
+              <span>保存后即可使用账号密码登录。</span>
+              <button class="primary-btn" type="submit">确认保存</button>
+            </div>
+          </form>
+        </details>
       </div>
       <div class="panel">
         <div class="section-title"><h3>积分记录</h3></div>
@@ -553,15 +560,13 @@ function renderAccount(state, user) {
     </section>
   `;
 }
-
 function renderAdmin(state) {
   const entries = Object.entries(state.inviteCodes);
   return `
-    <header class="page-title"><div><p class="eyebrow">Admin</p><h2>邀请码后台</h2></div></header>
+    <header class="page-title"><div><p class="eyebrow">Codes</p><h2>邀请码后台</h2></div></header>
     <section class="panel">
-      <div class="section-title"><h3>生成邀请码</h3><span>第一版用于手动发码</span></div>
+      <div class="section-title"><h3>生成邀请码</h3><span>系统会随机生成唯一邀请码</span></div>
       <div class="admin-grid">
-        <input id="adminCodeInput" type="text" placeholder="激活码，如 FINAL500" />
         <input id="adminCreditInput" type="number" min="1" value="100" />
         <button id="createCodeBtn" class="dark-btn" type="button">生成邀请码</button>
       </div>
@@ -576,7 +581,6 @@ function renderAdmin(state) {
     </section>
   `;
 }
-
 function renderEmpty(title, text) {
   return `<div class="empty-state"><strong>${title}</strong><span>${text}</span></div>`;
 }

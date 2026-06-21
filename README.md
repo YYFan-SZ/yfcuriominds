@@ -17,6 +17,8 @@ DEEPSEEK_MODEL=deepseek-chat
 SUPABASE_URL=https://你的项目.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=你的 service_role key
 SESSION_SECRET=一串足够长的随机字符串
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=管理员登录密码
 PORT=4173
 ```
 
@@ -29,6 +31,8 @@ PORT=4173
 3. 执行 `docs/supabase-schema.sql`
 4. 在 `.env` 填入 `SUPABASE_URL` 和 `SUPABASE_SERVICE_ROLE_KEY`
 5. 重启服务
+
+新增昵称密码登录后，线上 Supabase 也需要重新执行 `docs/supabase-schema.sql`，确保 `users.password_hash` 字段存在。
 
 配置成功后，启动日志会显示：
 
@@ -57,7 +61,8 @@ http://localhost:4173
 ## 后端接口
 
 - `GET /api/session`：读取当前登录用户
-- `POST /api/login`：邀请码登录、创建用户、充值积分
+- `POST /api/login`：邀请码登录或昵称密码登录；首次邀请码登录会创建用户、充值积分
+- `POST /api/account/credentials`：登录后设置昵称和密码
 - `POST /api/admin/invite-codes`：管理员生成邀请码
 - `POST /api/generate-comments`：校验积分、调用 DeepSeek、扣积分、保存生成记录
 
@@ -77,6 +82,7 @@ Cloudflare 上的接口仍然是原路径：
 
 - `POST /api/login`
 - `GET /api/session`
+- `POST /api/account/credentials`
 - `POST /api/generate-comments`
 - `GET /api/comment-history`
 - `POST /api/admin/invite-codes`
@@ -97,6 +103,8 @@ DEEPSEEK_MODEL=deepseek-chat
 SUPABASE_URL=https://你的项目.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=你的 service_role key
 SESSION_SECRET=一串足够长的随机字符串
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=管理员登录密码
 ```
 
 注意：

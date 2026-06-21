@@ -12,12 +12,16 @@ create table if not exists public.invite_codes (
 create table if not exists public.users (
   id uuid primary key default gen_random_uuid(),
   nickname text not null,
+  password_hash text,
   invite_code_id uuid references public.invite_codes(id),
   invite_code text,
   role text not null default 'teacher' check (role in ('teacher', 'admin')),
   credits integer not null default 0 check (credits >= 0),
   created_at timestamptz not null default now()
 );
+
+alter table public.users
+  add column if not exists password_hash text;
 
 alter table public.invite_codes
   drop constraint if exists invite_codes_used_by_fkey;
@@ -45,6 +49,7 @@ create table if not exists public.comments (
 
 create index if not exists credit_logs_user_id_created_at_idx on public.credit_logs(user_id, created_at desc);
 create index if not exists comments_user_id_created_at_idx on public.comments(user_id, created_at desc);
+create index if not exists users_nickname_idx on public.users(nickname);
 
 insert into public.invite_codes (code, credits, role)
 values
@@ -52,3 +57,5 @@ values
   ('CLASS300', 300, 'teacher'),
   ('ADMIN999', 999, 'admin')
 on conflict (code) do nothing;
+
+notify pgrst, 'reload schema';

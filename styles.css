@@ -83,12 +83,16 @@ button {
   width: 48px;
   height: 48px;
   place-items: center;
-  color: #fff;
-  font-size: 24px;
-  font-weight: 800;
-  background: var(--accent-strong);
+  overflow: hidden;
+  background: #ffffff;
   border-radius: 8px;
   box-shadow: 0 10px 22px rgba(8, 99, 79, 0.22);
+}
+
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .brand-row h1,
@@ -117,6 +121,40 @@ button {
 .admin-grid {
   display: grid;
   gap: 12px;
+}
+
+.login-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f7faf8;
+}
+
+.login-switch-btn {
+  min-height: 38px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.login-switch-btn.active {
+  background: #ffffff;
+  color: var(--ink);
+  box-shadow: 0 4px 12px rgba(16, 24, 40, 0.08);
+}
+
+.login-choice {
+  display: none;
+  margin-top: 16px;
+}
+
+.login-choice.active {
+  display: block;
 }
 
 label {
@@ -1324,6 +1362,46 @@ button:disabled {
   padding: 10px;
   background: var(--soft);
   border-radius: 8px;
+}
+
+.account-security {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.account-security summary {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #ffffff;
+  background: var(--accent-strong);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.account-security summary::marker {
+  content: "";
+}
+
+.account-credentials-form {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  max-width: 420px;
+}
+
+.account-security-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.account-security-actions span {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .ledger-list,

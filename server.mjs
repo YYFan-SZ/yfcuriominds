@@ -1,4 +1,4 @@
-import { createHmac, randomUUID } from "node:crypto";
+﻿import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
 import { createReadStream, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { dirname, extname, join, normalize } from "node:path";
@@ -10,8 +10,11 @@ loadEnvFile();
 
 const port = Number(process.env.PORT || 4173);
 const sessionSecret = process.env.SESSION_SECRET || "local-dev-session-secret";
+const adminPassword = process.env.ADMIN_PASSWORD || "";
+const adminUsername = process.env.ADMIN_USERNAME || "admin";
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const inviteCodeAlphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 const defaultInviteCodes = {
   TEACHER100: { credits: 100, role: "teacher" },
@@ -102,8 +105,11 @@ async function supabaseRequest(path, options = {}) {
   const payload = text ? JSON.parse(text) : null;
   if (!response.ok) {
     const message = payload?.message || payload?.hint || "Supabase request failed";
+    if (/schema cache/i.test(message) && /password_hash/i.test(message)) {
+      throw new Error("数据库缺少 password_hash 字段。请在 Supabase SQL Editor 执行 docs/supabase-password-migration.sql 后再保存。");
+    }
     if (/row-level security/i.test(message)) {
-      throw new Error("Supabase 权限不足：请确认 SUPABASE_SERVICE_ROLE_KEY 填的是 service_role secret key，不是 anon/publishable key");
+      throw new Error("Supabase 鏉冮檺涓嶈冻锛氳纭 SUPABASE_SERVICE_ROLE_KEY 濉殑鏄?service_role secret key锛屼笉鏄?anon/publishable key");
     }
     throw new Error(message);
   }
@@ -131,6 +137,7 @@ function toUser(row) {
     inviteCode: row.invite_code,
     role: row.role || "teacher",
     credits: row.credits,
+    passwordHash: row.password_hash || row.passwordHash || null,
     createdAt: row.created_at,
   };
 }
@@ -178,6 +185,23 @@ async function createInviteCode(code, credits, role) {
   return db.inviteCodes;
 }
 
+function generateInviteCode() {
+  const bytes = randomBytes(8);
+  const suffix = Array.from(bytes, (byte) => inviteCodeAlphabet[byte % inviteCodeAlphabet.length]).join("");
+  return suffix;
+}
+
+async function createRandomInviteCode(credits, role) {
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const code = generateInviteCode();
+    if (!(await getInviteByCode(code))) {
+      const inviteCodes = await createInviteCode(code, credits, role);
+      return { code, inviteCodes };
+    }
+  }
+  throw new Error("鐢熸垚闅忔満閭€璇风爜澶辫触锛岃閲嶈瘯");
+}
+
 async function ensureDefaultInviteCodes() {
   if (!hasSupabase()) return;
   const existing = await listInviteCodes();
@@ -218,6 +242,37 @@ async function getUserById(userId) {
     return toUser(rows[0]);
   }
   return readDb().users[userId] || null;
+}
+
+async function getUsersByNickname(nickname) {
+  if (hasSupabase()) {
+    const rows = await supabaseRequest(`users?nickname=eq.${encodeURIComponent(nickname)}&select=*`);
+    return rows.map(toUser);
+  }
+  return Object.values(readDb().users).filter((user) => user.nickname === nickname);
+}
+
+async function getUserByNicknameAndPassword(nickname, password) {
+  const users = await getUsersByNickname(nickname);
+  return users.find((user) => verifyPassword(password, user.passwordHash)) || null;
+}
+
+function createPasswordHash(password) {
+  const salt = randomBytes(16).toString("hex");
+  const hash = createHash("sha256").update(`${salt}:${password}`).digest("hex");
+  return `sha256:${salt}:${hash}`;
+}
+
+function verifyPassword(password, storedHash) {
+  if (!password || !storedHash) return false;
+  const [algorithm, salt, hash] = String(storedHash).split(":");
+  if (algorithm !== "sha256" || !salt || !hash) return false;
+  const candidate = createHash("sha256").update(`${salt}:${password}`).digest("hex");
+  return candidate === hash;
+}
+
+function createInviteNickname(code) {
+  return `用户${String(code || "").slice(-6)}`;
 }
 
 async function createUserFromInvite(invite, nickname) {
@@ -267,6 +322,92 @@ async function updateUserCredits(userId, credits) {
   db.users[userId].credits = credits;
   writeDb(db);
   return db.users[userId];
+}
+
+async function updateUserCredentials(userId, nickname, password) {
+  const user = await getUserById(userId);
+  if (!user) throw new Error("用户不存在");
+  const existing = await getUsersByNickname(nickname);
+  if (existing.some((item) => item.id !== userId)) throw new Error("这个昵称已被使用，请换一个");
+
+  const patch = { nickname };
+  if (password) patch.passwordHash = createPasswordHash(password);
+
+  if (hasSupabase()) {
+    const rows = await supabaseRequest(`users?id=eq.${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      prefer: "return=representation",
+      body: {
+        nickname: patch.nickname,
+        ...(patch.passwordHash ? { password_hash: patch.passwordHash } : {}),
+      },
+    });
+    return toUser(rows[0]);
+  }
+
+  const db = readDb();
+  db.users[userId] = { ...db.users[userId], ...patch };
+  writeDb(db);
+  return db.users[userId];
+}
+
+async function ensureConfiguredPasswordUser(nickname, password) {
+  if (!adminPassword || nickname !== adminUsername || password !== adminPassword) return null;
+  const existing = (await getUsersByNickname(nickname))[0];
+  const passwordHash = createPasswordHash(password);
+
+  if (hasSupabase()) {
+    if (existing) {
+      const rows = await supabaseRequest(`users?id=eq.${encodeURIComponent(existing.id)}`, {
+        method: "PATCH",
+        prefer: "return=representation",
+        body: {
+          nickname,
+          password_hash: passwordHash,
+          invite_code: existing.inviteCode || "ACCOUNT",
+          role: "admin",
+          credits: Math.max(Number(existing.credits) || 0, 999),
+        },
+      });
+      return toUser(rows[0]);
+    }
+
+    const rows = await supabaseRequest("users", {
+      method: "POST",
+      prefer: "return=representation",
+      body: [
+        {
+          id: randomUUID(),
+          nickname,
+          password_hash: passwordHash,
+          invite_code: "ACCOUNT",
+          role: "admin",
+          credits: 999,
+        },
+      ],
+    });
+    return toUser(rows[0]);
+  }
+
+  const db = readDb();
+  const user =
+    existing ||
+    {
+      id: randomUUID(),
+      nickname,
+      inviteCode: "ACCOUNT",
+      createdAt: new Date().toISOString(),
+    };
+  db.users[user.id] = {
+    ...user,
+    nickname,
+    passwordHash,
+    inviteCode: user.inviteCode || "ACCOUNT",
+    role: "admin",
+    credits: Math.max(Number(user.credits) || 0, 999),
+  };
+  writeDb(db);
+  return db.users[user.id];
 }
 
 async function addCreditLog(userId, amount, type, description) {
@@ -457,6 +598,7 @@ function publicUser(user) {
     inviteCode: user.inviteCode,
     role: user.role,
     credits: user.credits,
+    hasPassword: Boolean(user.passwordHash),
     createdAt: user.createdAt,
   };
 }
@@ -493,7 +635,7 @@ function buildPrompt(students, settings) {
     "不要编造具体分数、排名、奖项、比赛、家庭情况、疾病、家庭住址等未提供信息。",
     "语言要自然、稳妥、有差异，不要机械模板化。",
     "必须输出 JSON 数组，不要输出 markdown，不要解释。",
-    '数组元素格式：{"studentId":"学生ID","comment":"评语内容"}',
+    '{"studentId":"学生ID","comment":"评语内容"}',
     "",
     `学段：${settings.stage}`,
     `场景：${settings.scene}`,
@@ -505,7 +647,6 @@ function buildPrompt(students, settings) {
     `学生数据：${JSON.stringify(students, null, 2)}`,
   ].join("\n");
 }
-
 async function callDeepSeek(students, settings) {
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) throw new Error("未配置 DEEPSEEK_API_KEY，无法真实生成评语");
@@ -527,13 +668,13 @@ async function callDeepSeek(students, settings) {
   });
 
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error?.message || "生成服务调用失败");
+  if (!response.ok) throw new Error(payload.error?.message || "鐢熸垚鏈嶅姟璋冪敤澶辫触");
 
   const content = payload.choices?.[0]?.message?.content?.trim();
-  if (!content) throw new Error("生成服务返回为空");
+  if (!content) throw new Error("鐢熸垚鏈嶅姟杩斿洖涓虹┖");
   const jsonText = content.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/i, "").trim();
   const parsed = JSON.parse(jsonText);
-  if (!Array.isArray(parsed)) throw new Error("生成服务返回格式异常");
+  if (!Array.isArray(parsed)) throw new Error("鐢熸垚鏈嶅姟杩斿洖鏍煎紡寮傚父");
   return parsed;
 }
 
@@ -551,16 +692,31 @@ async function handleApi(request, response, path) {
 
   if (request.method === "POST" && path === "/api/login") {
     const body = await readJson(request);
+    const loginType = body.loginType === "password" ? "password" : "invite";
+    if (loginType === "password") {
+      const nickname = String(body.nickname || "").trim();
+      const password = String(body.password || "");
+      if (!nickname || !password) return sendJson(response, 400, { message: "请输入昵称和密码" });
+      const user = (await getUserByNicknameAndPassword(nickname, password)) || (await ensureConfiguredPasswordUser(nickname, password));
+      if (!user) return sendJson(response, 401, { message: "昵称或密码错误" });
+      return sendJson(response, 200, {
+        token: signToken(user.id),
+        user: publicUser(user),
+        creditLogs: await getCreditLogs(user.id),
+        inviteCodes: user.role === "admin" ? await listInviteCodes() : undefined,
+        storage: hasSupabase() ? "supabase" : "json",
+      });
+    }
+
     const code = String(body.code || "").trim().toUpperCase();
-    const nickname = String(body.nickname || "").trim();
     const invite = await getInviteByCode(code);
     if (!invite) return sendJson(response, 404, { message: "邀请码不存在" });
     if (invite.status !== "active") return sendJson(response, 403, { message: "邀请码不可用" });
+    if (invite.role === "admin") return sendJson(response, 403, { message: "请使用账号密码登录" });
 
     let user = invite.usedBy ? await getUserById(invite.usedBy) : null;
     if (!user) {
-      if (!nickname) return sendJson(response, 400, { message: "首次使用邀请码需要填写昵称" });
-      user = await createUserFromInvite(invite, nickname);
+      user = await createUserFromInvite(invite, createInviteNickname(code));
       await markInviteUsed(code, user.id);
       await addCreditLog(user.id, user.credits, "redeem", `邀请码 ${code} 充值`);
     }
@@ -576,31 +732,40 @@ async function handleApi(request, response, path) {
 
   if (request.method === "POST" && path === "/api/admin/invite-codes") {
     const user = await getSessionUser(request);
-    if (!user || user.role !== "admin") return sendJson(response, 403, { message: "只有管理员能生成邀请码" });
+    if (!user || user.role !== "admin") return sendJson(response, 403, { message: "鍙湁绠＄悊鍛樿兘鐢熸垚閭€璇风爜" });
     const body = await readJson(request);
-    const code = String(body.code || `FINAL${Math.floor(1000 + Math.random() * 9000)}`).trim().toUpperCase();
     const credits = Math.max(1, Number(body.credits) || 100);
     const role = body.role === "admin" ? "admin" : "teacher";
-    const existing = await getInviteByCode(code);
-    if (existing) return sendJson(response, 409, { message: "邀请码已存在" });
-    const inviteCodes = await createInviteCode(code, credits, role);
-    return sendJson(response, 200, { inviteCodes });
+    const { code, inviteCodes } = await createRandomInviteCode(credits, role);
+    return sendJson(response, 200, { code, inviteCodes });
+  }
+
+  if (request.method === "POST" && path === "/api/account/credentials") {
+    const user = await getSessionUser(request);
+    if (!user) return sendJson(response, 401, { message: "未登录" });
+    const body = await readJson(request);
+    const nickname = String(body.nickname || "").trim();
+    const password = String(body.password || "");
+    if (!nickname) return sendJson(response, 400, { message: "请输入昵称" });
+    if (password && password.length < 6) return sendJson(response, 400, { message: "密码至少 6 位" });
+    const updatedUser = await updateUserCredentials(user.id, nickname, password);
+    return sendJson(response, 200, { user: publicUser(updatedUser) });
   }
 
   if (request.method === "GET" && path === "/api/comment-history") {
     const user = await getSessionUser(request);
-    if (!user) return sendJson(response, 401, { message: "请先登录" });
+    if (!user) return sendJson(response, 401, { message: "未登录" });
     return sendJson(response, 200, { records: await getCommentHistory(user.id) });
   }
 
   if (request.method === "POST" && path === "/api/generate-comments") {
     const user = await getSessionUser(request);
-    if (!user) return sendJson(response, 401, { message: "请先登录" });
+    if (!user) return sendJson(response, 401, { message: "未登录" });
     const body = await readJson(request);
     const students = Array.isArray(body.students) ? body.students : [];
-    if (!students.length) return sendJson(response, 400, { message: "没有学生数据" });
+    if (!students.length) return sendJson(response, 400, { message: "娌℃湁瀛︾敓鏁版嵁" });
     const cost = getGenerationCost(students, body.settings || {});
-    if (user.credits < cost) return sendJson(response, 402, { message: `积分不足，本次需要 ${cost} 积分` });
+    if (user.credits < cost) return sendJson(response, 402, { message: `绉垎涓嶈冻锛屾湰娆￠渶瑕?${cost} 绉垎` });
 
     const historyCreatedAt = new Date().toISOString();
     const historySettings = {

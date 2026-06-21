@@ -1,5 +1,5 @@
-import { DEFAULT_SETTINGS, ROUTES, TAG_CATEGORIES, WORKSPACE_STEPS } from "./constants.js";
-import { loadSession, loginWithInvite, logout } from "./auth.js";
+﻿import { DEFAULT_SETTINGS, ROUTES, TAG_CATEGORIES, WORKSPACE_STEPS } from "./constants.js";
+import { loadSession, loginWithInvite, loginWithPassword, logout, updateAccountCredentials } from "./auth.js";
 import { getGenerationCost } from "./commentGenerator.js";
 import { exportCsv, exportWord, getExportRows } from "./exporter.js";
 import { apiRequest } from "./api.js";
@@ -23,16 +23,16 @@ window.addEventListener("error", (event) => showFatalError(event.error || event.
 window.addEventListener("unhandledrejection", (event) => showFatalError(event.reason));
 
 function showFatalError(error) {
-  const message = error?.message || String(error || "未知错误");
+  const message = error?.message || String(error || "鏈煡閿欒");
   console.error(error);
   app.innerHTML = `
     <main class="entry-page">
       <section class="entry-card">
         <div class="brand-row">
-          <div class="brand-mark">评</div>
+          <div class="brand-mark"><img class="brand-logo" src="./logo.png" alt="鏈熸湯璇勮鍔╂墜" /></div>
           <div>
-            <h1>页面加载失败</h1>
-            <p>请刷新页面；如果仍然出现，请把下面错误发给开发者。</p>
+            <h1>椤甸潰鍔犺浇澶辫触</h1>
+            <p>璇峰埛鏂伴〉闈紱濡傛灉浠嶇劧鍑虹幇锛岃鎶婁笅闈㈤敊璇彂缁欏紑鍙戣€呫€?/p>
           </div>
         </div>
         <pre class="fatal-error"></pre>
@@ -51,6 +51,7 @@ function bindPageEvents() {
   bindSettingsStep();
   bindResultsStep();
   bindHistoryPage();
+  bindAccountPage();
   bindAdminPage();
   bindStudentDragSorting();
 }
@@ -71,7 +72,7 @@ function bindGlobalNavigation() {
   $$(".nav-btn").forEach((button) => {
     button.addEventListener("click", () => {
       if (button.dataset.route === ROUTES.ADMIN && getCurrentUser()?.role !== "admin") {
-        showToast("只有管理员能进入邀请码后台");
+        showToast("娌℃湁鏉冮檺杩涘叆閭€璇风爜鍚庡彴");
         return;
       }
       setState({ route: button.dataset.route });
@@ -95,10 +96,29 @@ function bindGlobalNavigation() {
 }
 
 function bindEnterPage() {
+  $$("[data-login-mode]").forEach((button) => {
+    button.addEventListener("click", () => {
+      const mode = button.dataset.loginMode;
+      $$("[data-login-mode]").forEach((item) => item.classList.toggle("active", item === button));
+      $$("[data-login-panel]").forEach((panel) => panel.classList.toggle("active", panel.dataset.loginPanel === mode));
+    });
+  });
+
   $("#inviteLoginForm")?.addEventListener("submit", async (event) => {
     event.preventDefault();
     try {
-      const result = await loginWithInvite($("#inviteCodeInput").value, $("#nicknameInput").value);
+      const result = await loginWithInvite($("#inviteCodeInput").value);
+      showToast(result.message);
+      render();
+    } catch (error) {
+      showToast(error.message);
+    }
+  });
+
+  $("#passwordLoginForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      const result = await loginWithPassword($("#loginNicknameInput").value, $("#loginPasswordInput").value);
       showToast(result.message);
       render();
     } catch (error) {
@@ -144,7 +164,7 @@ function bindImportStep() {
     if (!file) return;
     if (/\.(xls)$/i.test(file.name)) {
       event.target.value = "";
-      showToast("请上传 .xlsx、CSV 或 TXT 文件，老版 .xls 请先另存为 .xlsx");
+      showToast("璇蜂笂浼?.xlsx銆丆SV 鎴?TXT 鏂囦欢锛岃€佺増 .xls 璇峰厛鍙﹀瓨涓?.xlsx");
       return;
     }
 
@@ -158,7 +178,7 @@ function bindImportStep() {
         if (!state.activeStudentId && additions[0]) state.activeStudentId = additions[0].id;
         return state;
       });
-      showToast(additions.length ? `已从文件导入 ${additions.length} 名学生` : "没有识别到姓名，请检查是否有“姓名/学生姓名”列");
+      showToast(additions.length ? `已从文件导入 ${additions.length} 名学生` : "没有识别到姓名，请检查是否有“姓名”或“学生姓名”列");
       render();
     } catch (error) {
       showToast(error.message || "文件解析失败，请检查格式");
@@ -322,7 +342,7 @@ function bindTagsStep() {
       });
       return state;
     });
-    showToast("已为未选标签的学生填入默认标签");
+    showToast("宸蹭负鏈€夋爣绛剧殑瀛︾敓濉叆榛樿鏍囩");
     render();
   });
 
@@ -371,7 +391,7 @@ function bindTagsStep() {
         });
         return state;
       });
-      showToast("标签库已恢复默认");
+      showToast("鏍囩搴撳凡鎭㈠榛樿");
       render();
       return;
     }
@@ -414,7 +434,7 @@ function bindTagsStep() {
 function updateSelectedTags(card, tags) {
   const container = card?.querySelector(".selected-tags");
   if (!container) return;
-  container.innerHTML = tags.length ? tags.map((tag) => `<span>${tag}</span>`).join("") : "<em>未选择标签</em>";
+  container.innerHTML = tags.length ? tags.map((tag) => `<span>${tag}</span>`).join("") : "<em>鏈€夋嫨鏍囩</em>";
 }
 
 function bindSettingsStep() {
@@ -505,8 +525,8 @@ function bindSettingsStep() {
         };
         return draft;
       });
-      showToast("评语已生成");
       render();
+      window.setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 0);
     } catch (error) {
       setState({
         generationStatus: {
@@ -566,7 +586,7 @@ function bindResultsStep() {
     try {
       const rewriteInstruction = card.querySelector("[data-rewrite-input]")?.value.trim() || "";
       if (button.dataset.action === "confirm-rewrite" && !rewriteInstruction) {
-        showToast("请先在改写要求里输入要怎么改");
+        showToast("请先输入改写要求");
         card.querySelector("[data-rewrite-input]")?.focus();
         return;
       }
@@ -600,82 +620,18 @@ function bindResultsStep() {
         draft.generationStatus = {
           type: "success",
           title: "更新成功",
-          message: isRewrite ? `${student.name} 的评语已按要求改写。` : `${student.name} 的评语已重新生成。`,
+          message: `${student.name} 的评语已更新。`,
         };
         return draft;
       });
-      showToast("评语已更新");
+      showToast(isRewrite ? "已完成局部改写" : "已重新生成");
       render();
     } catch (error) {
-      setState({
-        generationStatus: {
-          type: "error",
-          title: "更新失败",
-          message: error.message,
-        },
-      });
+      setState({ generationStatus: { type: "error", title: "更新失败", message: error.message } });
       showToast(error.message);
       render();
     }
   });
-
-  $("#selectAllResults")?.addEventListener("change", (event) => {
-    $$("#resultList [data-result-select]").forEach((checkbox) => {
-      checkbox.checked = event.target.checked;
-    });
-    updateSelectedResultCount();
-  });
-
-  $("#resultList")?.addEventListener("change", (event) => {
-    if (!event.target.matches("[data-result-select]")) return;
-    updateSelectedResultCount();
-  });
-
-  $("#bulkToneBtn")?.addEventListener("click", async () => {
-    const state = getState();
-    const entries = state.students.filter((student) => state.comments[student.id]);
-    if (!entries.length) return showToast("暂无可改写的评语");
-
-    try {
-      setState({
-        generationStatus: {
-          type: "loading",
-          title: "正在批量换风格",
-          message: `正在为 ${entries.length} 条评语换成${$("#bulkToneSelect").value}风格。`,
-        },
-      });
-      render();
-      const payload = await apiRequest("/api/generate-comments", {
-        method: "POST",
-        body: JSON.stringify({ students: entries, settings: { ...state.settings, tone: $("#bulkToneSelect").value } }),
-      });
-      updateState((draft) => {
-        payload.comments.forEach((item) => {
-          draft.comments[item.studentId] = item.comment;
-        });
-        draft.currentUser = payload.user;
-        draft.creditLogs = payload.creditLogs || [];
-        draft.generationStatus = {
-          type: "success",
-          title: "批量换风格成功",
-          message: `已更新 ${payload.comments.length} 条评语。`,
-        };
-        return draft;
-      });
-      render();
-    } catch (error) {
-      setState({
-        generationStatus: {
-          type: "error",
-          title: "批量换风格失败",
-          message: error.message,
-        },
-      });
-      showToast(error.message);
-      render();
-    }
-  });
-
   $("#copyAllBtn")?.addEventListener("click", async () => {
     const rows = getSelectedExportRows();
     if (!rows.length) return showToast("请先选择要复制的评语");
@@ -790,25 +746,42 @@ function bindHistoryPage() {
     render();
   });
 }
+function bindAccountPage() {
+  $("#accountCredentialsForm")?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    try {
+      const password = $("#accountPasswordInput").value;
+      const passwordConfirm = $("#accountPasswordConfirmInput").value;
+      if (password !== passwordConfirm) {
+        showToast("两次输入的新密码不一致");
+        return;
+      }
+      const result = await updateAccountCredentials($("#accountNicknameInput").value, password);
+      showToast(result.message);
+      render();
+    } catch (error) {
+      showToast(error.message === "接口不存在" ? "当前服务未更新，请重启或重新部署后再保存" : error.message);
+    }
+  });
+}
 
 function bindAdminPage() {
   if (getState().route === ROUTES.ADMIN && getCurrentUser()?.role !== "admin") {
     setState({ route: ROUTES.WORKSPACE });
-    showToast("只有管理员能进入邀请码后台");
+    showToast("娌℃湁鏉冮檺杩涘叆閭€璇风爜鍚庡彴");
     render();
     return;
   }
 
   $("#createCodeBtn")?.addEventListener("click", async () => {
-    const code = $("#adminCodeInput").value.trim().toUpperCase() || `FINAL${Math.floor(1000 + Math.random() * 9000)}`;
     const credits = Math.max(1, Number($("#adminCreditInput").value) || 100);
     try {
       const payload = await apiRequest("/api/admin/invite-codes", {
         method: "POST",
-        body: JSON.stringify({ code, credits }),
+        body: JSON.stringify({ credits }),
       });
       setState({ inviteCodes: payload.inviteCodes || {} });
-      showToast(`已生成邀请码 ${code}`);
+      showToast(`已生成邀请码 ${payload.code || ""}`);
       render();
     } catch (error) {
       showToast(error.message);
