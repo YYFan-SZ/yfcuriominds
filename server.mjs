@@ -19,6 +19,17 @@ const defaultInviteCodes = {
   ADMIN999: { credits: 999, role: "admin" },
 };
 
+const chinaTimeFormatOptions = {
+  timeZone: "Asia/Shanghai",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+};
+
 const types = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -131,7 +142,7 @@ function toCreditLog(row) {
     amount: row.amount,
     type: row.type,
     description: row.description,
-    time: row.created_at ? new Date(row.created_at).toLocaleString("zh-CN") : row.time,
+    time: row.created_at ? formatDateTime(row.created_at) : row.time,
   };
 }
 
@@ -274,7 +285,7 @@ async function addCreditLog(userId, amount, type, description) {
     amount,
     type,
     description,
-    time: new Date().toLocaleString("zh-CN"),
+    time: formatDateTime(new Date().toISOString()),
   });
   db.creditLogs = db.creditLogs.slice(0, 300);
   writeDb(db);
@@ -396,7 +407,7 @@ function stripHistorySettings(settings) {
 
 function formatDateTime(value) {
   if (!value) return "";
-  return new Date(value).toLocaleString("zh-CN");
+  return new Date(value).toLocaleString("zh-CN", chinaTimeFormatOptions);
 }
 
 function signToken(userId) {

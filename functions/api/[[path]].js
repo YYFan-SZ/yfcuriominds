@@ -4,6 +4,17 @@ const defaultInviteCodes = {
   ADMIN999: { credits: 999, role: "admin" },
 };
 
+const chinaTimeFormatOptions = {
+  timeZone: "Asia/Shanghai",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hour12: false,
+};
+
 function requireEnv(env) {
   const supabaseUrl = env.SUPABASE_URL;
   const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
@@ -91,7 +102,7 @@ function toCreditLog(row) {
     amount: row.amount,
     type: row.type,
     description: row.description,
-    time: row.created_at ? new Date(row.created_at).toLocaleString("zh-CN") : row.time,
+    time: row.created_at ? formatDateTime(row.created_at) : row.time,
   };
 }
 
@@ -265,7 +276,7 @@ function stripHistorySettings(settings) {
 
 function formatDateTime(value) {
   if (!value) return "";
-  return new Date(value).toLocaleString("zh-CN");
+  return new Date(value).toLocaleString("zh-CN", chinaTimeFormatOptions);
 }
 
 function bytesToBase64Url(bytes) {
