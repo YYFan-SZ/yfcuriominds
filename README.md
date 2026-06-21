@@ -64,3 +64,44 @@ http://localhost:4173
 ## 数据说明
 
 正式售卖请使用 Supabase。`data/db.json` 只作为本地开发 fallback。
+
+## Cloudflare Pages 部署
+
+项目已包含 Cloudflare Pages Functions：
+
+```text
+functions/api/[[path]].js
+```
+
+Cloudflare 上的接口仍然是原路径：
+
+- `POST /api/login`
+- `GET /api/session`
+- `POST /api/generate-comments`
+- `GET /api/comment-history`
+- `POST /api/admin/invite-codes`
+
+Cloudflare Pages 设置建议：
+
+```text
+Build command: 留空
+Build output directory: /
+Root directory: /
+```
+
+然后在 Cloudflare Pages 项目后台添加环境变量：
+
+```text
+DEEPSEEK_API_KEY=你的生成服务 Key
+DEEPSEEK_MODEL=deepseek-chat
+SUPABASE_URL=https://你的项目.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=你的 service_role key
+SESSION_SECRET=一串足够长的随机字符串
+```
+
+注意：
+
+- 不要把 `.env` 上传到 GitHub。
+- 不要把 `SUPABASE_SERVICE_ROLE_KEY` 放进前端代码。
+- Cloudflare 线上版本只使用 Supabase，不使用 `data/db.json`。
+- 修改环境变量后需要重新部署一次。
