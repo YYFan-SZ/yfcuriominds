@@ -217,7 +217,7 @@ function renderStudentCard(student, index, activeStudentId) {
         <input data-name-input value="${escapeHtml(student.name)}" aria-label="学生姓名" />
         <button class="icon-btn" type="button" title="删除学生" aria-label="删除学生">×</button>
       </div>
-      <div class="selected-tags">${tags.length ? tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("") : "<em>鏈€夋嫨鏍囩</em>"}</div>
+      <div class="selected-tags">${tags.length ? tags.map((tag) => `<span>${escapeHtml(tag)}</span>`).join("") : "<em>未选择标签</em>"}</div>
     </article>
   `;
 }
@@ -227,12 +227,12 @@ function renderActiveTagEditor(student, tagCategories) {
   const tags = student.tags || [];
   return `
     <aside id="tagEditor" class="tag-editor" data-id="${student.id}">
-      <div class="mini-section-title">褰撳墠缂栬緫锛?{escapeHtml(student.name)}</div>
+      <div class="mini-section-title">当前编辑：${escapeHtml(student.name)}</div>
       <div class="quick-tag-grid">
         ${tagCategories.map((category) => renderTagCategory(category, tags)).join("")}
         <label class="quick-tag-input custom-note">
-          琛ュ厖鎻忚堪
-          <input data-student-note value="${escapeHtml(student.note || "")}" placeholder="濡傦細鏈€杩戞洿鎰挎剰涓炬墜銆佷綔涓氱ǔ瀹氬緢澶? />
+          补充描述
+          <input data-student-note value="${escapeHtml(student.note || "")}" placeholder="如：最近更愿意举手、作业稳定很多" />
         </label>
       </div>
     </aside>
@@ -257,8 +257,8 @@ function renderTagLibraryEditor(tagCategories) {
   return `
     <section id="tagLibraryEditor" class="tag-library-editor">
       <div class="tag-library-heading">
-        <div class="mini-section-title">鏍囩搴撶紪杈?/div>
-        <button id="resetTagLibraryBtn" class="text-btn" type="button">鎭㈠榛樿</button>
+        <div class="mini-section-title">标签库编辑</div>
+        <button id="resetTagLibraryBtn" class="text-btn" type="button">恢复默认</button>
       </div>
       <div class="tag-library-list">
         ${tagCategories
@@ -283,7 +283,7 @@ function renderTagLibraryEditor(tagCategories) {
                 </div>
                 <div class="tag-add-row">
                   <input data-tag-add-input placeholder="新增${escapeHtml(category.name)}标签" />
-                  <button class="ghost-btn" data-tag-add type="button">娣诲姞</button>
+                  <button class="ghost-btn" data-tag-add type="button">添加</button>
                 </div>
               </div>
             `,
@@ -299,15 +299,15 @@ function renderTagLibraryPage(state) {
     <header class="page-title">
       <div>
         <p class="eyebrow">Tag Library</p>
-        <h2>鏍囩搴撶紪杈?/h2>
+        <h2>标签库编辑</h2>
       </div>
-      <button class="ghost-btn" data-step="${WORKSPACE_STEPS.TAGS}" type="button">杩斿洖閫愪釜鏍囩</button>
+      <button class="ghost-btn" data-step="${WORKSPACE_STEPS.TAGS}" type="button">返回逐个标签</button>
     </header>
     <section class="panel">
       <div class="section-title">
         <div>
-          <h3>鑷畾涔夋爣绛?/h3>
-          <p class="subtle">杩欓噷淇敼鐨勬槸鑰佸笀鑷繁鐨勬爣绛惧簱锛屼細鍚屾鍒扳€滈€愪釜鏍囩鈥濋〉闈紱宸查€変腑鐨勫悓鍚嶆爣绛句篃浼氳窡鐫€鏇存柊銆?/p>
+          <h3>自定义标签</h3>
+          <p class="subtle">这里修改的是老师自己的标签库，会同步到“逐个标签”页面；已选中的同名标签也会跟着更新。</p>
         </div>
       </div>
       ${renderTagLibraryEditor(state.tagCategories || [])}
@@ -496,10 +496,10 @@ function renderGenerationStudentPanel(students, selectedIds) {
   return `
     <section id="settingsStudentOrder" class="student-order-panel generation-student-panel">
       <div class="selection-toolbar generation-select-toolbar">
-        <label><input id="selectAllGenerateStudents" type="checkbox" ${isAllSelected ? "checked" : ""} /> 鍏ㄩ€夌敓鎴愬璞?/label>
-        <span id="selectedGenerateCount">${selectedCount} / ${students.length} 宸查€?/span>
+        <label><input id="selectAllGenerateStudents" type="checkbox" ${isAllSelected ? "checked" : ""} /> 全选生成对象</label>
+        <span id="selectedGenerateCount">${selectedCount} / ${students.length} 已选</span>
       </div>
-      <div class="mini-section-title">鐢熸垚瀵硅薄涓庨『搴?/div>
+      <div class="mini-section-title">生成对象与顺序</div>
       <div class="student-order-list" data-student-order-list>
         ${students
           .map(

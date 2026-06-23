@@ -23,16 +23,16 @@ window.addEventListener("error", (event) => showFatalError(event.error || event.
 window.addEventListener("unhandledrejection", (event) => showFatalError(event.reason));
 
 function showFatalError(error) {
-  const message = error?.message || String(error || "鏈煡閿欒");
+  const message = error?.message || String(error || "未知错误");
   console.error(error);
   app.innerHTML = `
     <main class="entry-page">
       <section class="entry-card">
         <div class="brand-row">
-          <div class="brand-mark"><img class="brand-logo" src="./logo.png" alt="鏈熸湯璇勮鍔╂墜" /></div>
+          <div class="brand-mark"><img class="brand-logo" src="./logo.png" alt="期末评语助手" /></div>
           <div>
-            <h1>椤甸潰鍔犺浇澶辫触</h1>
-            <p>璇峰埛鏂伴〉闈紱濡傛灉浠嶇劧鍑虹幇锛岃鎶婁笅闈㈤敊璇彂缁欏紑鍙戣€呫€?/p>
+            <h1>页面加载失败</h1>
+            <p>请刷新页面；如果仍然出现，请把下面错误发给开发者。</p>
           </div>
         </div>
         <pre class="fatal-error"></pre>
@@ -72,7 +72,7 @@ function bindGlobalNavigation() {
   $$(".nav-btn").forEach((button) => {
     button.addEventListener("click", () => {
       if (button.dataset.route === ROUTES.ADMIN && getCurrentUser()?.role !== "admin") {
-        showToast("娌℃湁鏉冮檺杩涘叆閭€璇风爜鍚庡彴");
+        showToast("没有权限进入邀请码后台");
         return;
       }
       setState({ route: button.dataset.route });
@@ -164,7 +164,7 @@ function bindImportStep() {
     if (!file) return;
     if (/\.(xls)$/i.test(file.name)) {
       event.target.value = "";
-      showToast("璇蜂笂浼?.xlsx銆丆SV 鎴?TXT 鏂囦欢锛岃€佺増 .xls 璇峰厛鍙﹀瓨涓?.xlsx");
+      showToast("请上传 .xlsx、CSV 或 TXT 文件；老版 .xls 请先另存为 .xlsx");
       return;
     }
 
@@ -342,7 +342,7 @@ function bindTagsStep() {
       });
       return state;
     });
-    showToast("宸蹭负鏈€夋爣绛剧殑瀛︾敓濉叆榛樿鏍囩");
+    showToast("已为未选标签的学生填入默认标签");
     render();
   });
 
@@ -391,7 +391,7 @@ function bindTagsStep() {
         });
         return state;
       });
-      showToast("鏍囩搴撳凡鎭㈠榛樿");
+      showToast("标签库已恢复默认");
       render();
       return;
     }
@@ -434,7 +434,7 @@ function bindTagsStep() {
 function updateSelectedTags(card, tags) {
   const container = card?.querySelector(".selected-tags");
   if (!container) return;
-  container.innerHTML = tags.length ? tags.map((tag) => `<span>${tag}</span>`).join("") : "<em>鏈€夋嫨鏍囩</em>";
+  container.innerHTML = tags.length ? tags.map((tag) => `<span>${tag}</span>`).join("") : "<em>未选择标签</em>";
 }
 
 function bindSettingsStep() {
@@ -768,7 +768,7 @@ function bindAccountPage() {
 function bindAdminPage() {
   if (getState().route === ROUTES.ADMIN && getCurrentUser()?.role !== "admin") {
     setState({ route: ROUTES.WORKSPACE });
-    showToast("娌℃湁鏉冮檺杩涘叆閭€璇风爜鍚庡彴");
+    showToast("没有权限进入邀请码后台");
     render();
     return;
   }

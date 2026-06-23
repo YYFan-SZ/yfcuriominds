@@ -20,7 +20,7 @@ function requireEnv(env) {
   const supabaseUrl = env.SUPABASE_URL;
   const supabaseServiceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
   if (!supabaseUrl || !supabaseServiceRoleKey) {
-    throw new Error("鏈厤缃?Supabase 鐜鍙橀噺锛岃鍦?Cloudflare 鍚庡彴濉啓 SUPABASE_URL 鍜?SUPABASE_SERVICE_ROLE_KEY");
+    throw new Error("未配置 Supabase 环境变量，请在 Cloudflare 后台填写 SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY");
   }
   return {
     supabaseUrl,
@@ -69,7 +69,7 @@ async function supabaseRequest(env, path, options = {}) {
       throw new Error("数据库缺少 password_hash 字段。请在 Supabase SQL Editor 执行 docs/supabase-password-migration.sql 后再保存。");
     }
     if (/row-level security/i.test(message)) {
-      throw new Error("Supabase 鏉冮檺涓嶈冻锛氳纭 SUPABASE_SERVICE_ROLE_KEY 濉殑鏄?service_role secret key锛屼笉鏄?anon/publishable key");
+      throw new Error("Supabase 权限不足：请确认 SUPABASE_SERVICE_ROLE_KEY 填的是 service_role secret key，不是 anon/publishable key");
     }
     throw new Error(message);
   }
@@ -147,7 +147,7 @@ async function createRandomInviteCode(env, credits, role) {
       return { code, inviteCodes };
     }
   }
-  throw new Error("鐢熸垚闅忔満閭€璇风爜澶辫触锛岃閲嶈瘯");
+  throw new Error("生成随机邀请码失败，请重试");
 }
 
 async function ensureDefaultInviteCodes(env) {
@@ -519,7 +519,7 @@ function buildPrompt(students, settings) {
 }
 async function callGenerator(env, students, settings) {
   const { deepseekApiKey, deepseekModel } = requireEnv(env);
-  if (!deepseekApiKey) throw new Error("鏈厤缃敓鎴愭湇鍔″瘑閽ワ紝鏃犳硶鐢熸垚璇勮");
+  if (!deepseekApiKey) throw new Error("未配置生成服务密钥，无法生成评语");
 
   const response = await fetch("https://api.deepseek.com/chat/completions", {
     method: "POST",
@@ -538,13 +538,13 @@ async function callGenerator(env, students, settings) {
   });
 
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload.error?.message || "鐢熸垚鏈嶅姟璋冪敤澶辫触");
+  if (!response.ok) throw new Error(payload.error?.message || "生成服务调用失败");
 
   const content = payload.choices?.[0]?.message?.content?.trim();
-  if (!content) throw new Error("鐢熸垚鏈嶅姟杩斿洖涓虹┖");
+  if (!content) throw new Error("生成服务返回为空");
   const jsonText = content.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```$/i, "").trim();
   const parsed = JSON.parse(jsonText);
-  if (!Array.isArray(parsed)) throw new Error("鐢熸垚鏈嶅姟杩斿洖鏍煎紡寮傚父");
+  if (!Array.isArray(parsed)) throw new Error("生成服务返回格式异常");
   return parsed;
 }
 
@@ -617,7 +617,7 @@ async function handleApi(env, request, path) {
 
   if (request.method === "POST" && path === "/api/admin/invite-codes") {
     const user = await getSessionUser(env, request);
-    if (!user || user.role !== "admin") return jsonResponse(403, { message: "鍙湁绠＄悊鍛樿兘鐢熸垚閭€璇风爜" });
+    if (!user || user.role !== "admin") return jsonResponse(403, { message: "只有管理员能生成邀请码" });
     const body = await readJson(request);
     const credits = Math.max(1, Number(body.credits) || 100);
     const role = body.role === "admin" ? "admin" : "teacher";
